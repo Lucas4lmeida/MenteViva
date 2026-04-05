@@ -80,22 +80,3 @@ void npWrite() {
   }
   sleep_us(100); // Espera 100us, sinal de RESET do datasheet.
 }
-
-int main() {
-
-  // Inicializa entradas e saídas.
-  stdio_init_all();
-
-  // Inicializa matriz de LEDs NeoPixel.
-  npInit(LED_PIN);
-  npClear();
-
-  // Aqui, você desenha nos LEDs.
-
-  npWrite(); // Escreve os dados nos LEDs.
-
-  // Não faz mais nada. Loop infinito.
-  while (true) {
-    sleep_ms(1000);
-  }
-}

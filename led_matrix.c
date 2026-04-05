@@ -1,16 +1,17 @@
-#include <string.h>
 #include "pico/stdlib.h"
 #include "menteviva.h"
-#include "ws2812b.h"
 
-static uint32_t buf[NUM_LEDS];
+void npInit(uint pin);
+void npSetLED(const uint index, const uint8_t r, const uint8_t g, const uint8_t b);
+void npClear(void);
+void npWrite(void);
 
 void matriz_init(void) {
-    ws2812b_init(LED_MATRIX_PIN);
+    npInit(LED_MATRIX_PIN);
     matriz_limpar();
 }
 
 void matriz_limpar(void) {
-    memset(buf, 0, sizeof(buf));
-    ws2812b_set_all(buf, NUM_LEDS);
+    npClear();
+    npWrite();
 }

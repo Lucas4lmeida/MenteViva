@@ -56,9 +56,15 @@ static void maquina_estados(void) {
         if (btn_a_apertou()) {
             const char *nomes[] = {"Memoria", "Reflexo", "Historico"};
             printf("[menu] selecionou: %s\n", nomes[app.cursor_menu]);
+
+            rgb_set(0, 0, 20);
             buzzer_tom(880, 100);
-            // TODO: implementar jogos nos proximos dias
-        }
+            matriz_limpar();
+            sleep_ms(80);
+            rgb_set(0, 10, 0);
+
+    // TODO: implementar jogos nos proximos dias
+}
         break;
     }
 }

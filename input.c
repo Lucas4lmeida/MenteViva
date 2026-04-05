@@ -69,9 +69,9 @@ bool joy_btn_apertou(void) {
 
 direcao_t joy_direcao(void) {
     adc_select_input(0);
-    int x = (int)adc_read() - JOY_CENTRO;
-    adc_select_input(1);
     int y = (int)adc_read() - JOY_CENTRO;
+    adc_select_input(1);
+    int x = (int)adc_read() - JOY_CENTRO;
 
     int ax = x < 0 ? -x : x;
     int ay = y < 0 ? -y : y;
@@ -82,5 +82,5 @@ direcao_t joy_direcao(void) {
     if (ax > ay)
         return x > 0 ? DIR_DIREITA : DIR_ESQUERDA;
     else
-        return y > 0 ? DIR_BAIXO : DIR_CIMA;
+        return y > 0 ? DIR_CIMA : DIR_BAIXO;
 }
