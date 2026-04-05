@@ -148,22 +148,12 @@ void display_init(void) {
     gpio_pull_up(OLED_SDA);
     gpio_pull_up(OLED_SCL);
 
-    sleep_ms(200);
+    sleep_ms(100);
 
     ssd1306_init(&oled, OLED_W, OLED_H, false, OLED_ADDR, OLED_I2C);
-    sleep_ms(200);
+    sleep_ms(100);
 
     ssd1306_config(&oled);
-    sleep_ms(50);
-
-    ssd1306_fill(&oled, false);
-    ssd1306_send_data(&oled);
-    sleep_ms(50);
-
-    ssd1306_fill(&oled, true);
-    ssd1306_send_data(&oled);
-    sleep_ms(300);
-
     ssd1306_fill(&oled, false);
     ssd1306_send_data(&oled);
 }
@@ -191,5 +181,29 @@ void display_menu(uint8_t cursor) {
     }
 
     draw_str(0, 56, 1, "A=ok Joy=move");
+    ssd1306_send_data(&oled);
+}
+
+void display_teste_memoria(direcao_t dir, int8_t quadrante) {
+    const char *nomes_dir[] = {"NENHUM", "CIMA", "BAIXO", "ESQUERDA", "DIREITA"};
+    char buf[24];
+
+    ssd1306_fill(&oled, false);
+
+    draw_str(8, 0, 1, "MEMORIA - TESTE");
+    ssd1306_hline(&oled, 0, 127, 10, true);
+
+    draw_str(0, 16, 1, "Joy acende quad.");
+    draw_str(0, 28, 1, "B: voltar");
+
+    snprintf(buf, sizeof(buf), "DIR: %s", nomes_dir[dir]);
+    draw_str(0, 42, 1, buf);
+
+    if (quadrante >= 0 && quadrante < 4)
+        snprintf(buf, sizeof(buf), "Q: %d", quadrante);
+    else
+        snprintf(buf, sizeof(buf), "Q: -");
+
+    draw_str(0, 54, 1, buf);
     ssd1306_send_data(&oled);
 }

@@ -20,12 +20,25 @@ static void pwm_init_rgb(void) {
 }
 
 static uint32_t ultimo_mov = 0;
+static uint32_t ultimo_preview = 0;
+static int8_t ultimo_quadrante = -1;
+
+static int8_t direcao_para_quadrante(direcao_t dir) {
+    switch (dir) {
+        case DIR_CIMA:     return 0;
+        case DIR_DIREITA:  return 1;
+        case DIR_BAIXO:    return 2;
+        case DIR_ESQUERDA: return 3;
+        default:           return -1;
+    }
+}
 
 static void navegar_menu(void) {
     uint32_t agora = to_ms_since_boot(get_absolute_time());
     if (agora - ultimo_mov < 250) return;
 
     direcao_t dir = joy_direcao();
+
     if (dir == DIR_CIMA && app.cursor_menu > 0) {
         app.cursor_menu--;
         ultimo_mov = agora;
@@ -34,6 +47,56 @@ static void navegar_menu(void) {
         app.cursor_menu++;
         ultimo_mov = agora;
         buzzer_tom(1200, 30);
+    }
+}
+
+static void entrar_teste_memoria(void) {
+    app.tela = TELA_TESTE_MEMORIA;
+    ultimo_preview = 0;
+    ultimo_quadrante = -1;
+
+    display_teste_memoria(DIR_NENHUM, -1);
+    matriz_todos_fracos();
+    rgb_set(0, 0, 20);
+
+    printf("[teste] memoria pronto\n");
+}
+
+static void voltar_menu(void) {
+    app.tela = TELA_MENU;
+    display_menu(app.cursor_menu);
+    matriz_limpar();
+    rgb_set(0, 10, 0);
+}
+
+static void tick_teste_memoria(void) {
+    uint32_t agora = to_ms_since_boot(get_absolute_time());
+    direcao_t dir = joy_direcao();
+    int8_t q = direcao_para_quadrante(dir);
+
+    if (btn_b_apertou()) {
+        printf("[teste] memoria encerrado\n");
+        buzzer_parar();
+        voltar_menu();
+        return;
+    }
+
+    display_teste_memoria(dir, q);
+
+    if (q >= 0) {
+        if (q != ultimo_quadrante || agora - ultimo_preview > 250) {
+            ultimo_quadrante = q;
+            ultimo_preview = agora;
+
+            matriz_quadrante_padrao(q);
+            buzzer_simon_tom(q);
+
+            printf("[teste] dir=%d q=%d\n", dir, q);
+        }
+    } else if (ultimo_quadrante != -1) {
+        ultimo_quadrante = -1;
+        matriz_todos_fracos();
+        printf("[teste] dir=0 q=-1\n");
     }
 }
 
@@ -57,14 +120,17 @@ static void maquina_estados(void) {
             const char *nomes[] = {"Memoria", "Reflexo", "Historico"};
             printf("[menu] selecionou: %s\n", nomes[app.cursor_menu]);
 
-            rgb_set(0, 0, 20);
-            buzzer_tom(880, 100);
-            matriz_limpar();
-            sleep_ms(80);
-            rgb_set(0, 10, 0);
+            if (app.cursor_menu == 0) {
+                entrar_teste_memoria();
+            } else {
+                buzzer_tom(880, 100);
+                // TODO: implementar proximas telas nos proximos dias
+            }
+        }
+        break;
 
-    // TODO: implementar jogos nos proximos dias
-}
+    case TELA_TESTE_MEMORIA:
+        tick_teste_memoria();
         break;
     }
 }
@@ -103,6 +169,7 @@ int main(void) {
     buzzer_tom(1100, 200);
 
     while (true) {
+        buzzer_tick();
         maquina_estados();
         sleep_ms(50);
     }

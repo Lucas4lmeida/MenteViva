@@ -44,7 +44,8 @@ typedef enum {
 
 typedef enum {
     TELA_BOOT,
-    TELA_MENU
+    TELA_MENU,
+    TELA_TESTE_MEMORIA
 } tela_t;
 
 typedef struct {
@@ -65,14 +66,21 @@ direcao_t joy_direcao(void);
 void display_init(void);
 void display_boot(void);
 void display_menu(uint8_t cursor);
+void display_teste_memoria(direcao_t dir, int8_t quadrante);
 
 // buzzer.c
 void buzzer_init(void);
 void buzzer_tom(uint freq, uint duracao_ms);
+void buzzer_simon_tom(uint8_t quadrante);
+void buzzer_parar(void);
+void buzzer_tick(void);
 
 // led_matrix.c
 void matriz_init(void);
 void matriz_limpar(void);
+void matriz_quadrante(uint8_t q, uint8_t r, uint8_t g, uint8_t b);
+void matriz_quadrante_padrao(uint8_t q);
+void matriz_todos_fracos(void);
 
 // led rgb
 static inline void rgb_set(uint8_t r, uint8_t g, uint8_t b) {
