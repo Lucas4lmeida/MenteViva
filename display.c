@@ -216,8 +216,8 @@ void display_simon_jogue(uint8_t nivel, uint8_t passo) {
     snprintf(buf, sizeof(buf), "Passo: %d/%d", passo, nivel);
     draw_str(0, 30, 1, buf);
 
-    draw_str(0, 44, 1, "Repita com");
-    draw_str(0, 56, 1, "joystick");
+    draw_str(0, 44, 1, "Repita pelos");
+    draw_str(0, 56, 1, "cantos");
 
     ssd1306_send_data(&oled);
 }

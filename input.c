@@ -12,6 +12,14 @@ static volatile uint32_t _j_tempo = 0;
 
 #define DEBOUNCE 200
 
+// Leitura diagonal do Simon:
+// - zona morta menor para não exigir canto "perfeito"
+// - eixo mínimo para evitar falso positivo
+// - relação máxima entre eixos para rejeitar movimento quase cardinal
+#define DIAG_ZONA_MORTA 220
+#define DIAG_MIN_EIXO   280
+#define DIAG_MIN_SOMA   950
+
 static void gpio_callback(uint gpio, uint32_t events) {
     if (!(events & GPIO_IRQ_EDGE_FALL)) return;
     uint32_t agora = to_ms_since_boot(get_absolute_time());
@@ -28,6 +36,17 @@ static void gpio_callback(uint gpio, uint32_t events) {
         _j_flag = true;
         _j_tempo = agora;
     }
+}
+
+static void joy_ler_xy(int *x, int *y) {
+    // Mantém o mesmo mapeamento lógico já validado no projeto:
+    // adc0 entra como eixo vertical lógico
+    // adc1 entra como eixo horizontal lógico
+    adc_select_input(0);
+    *y = (int)adc_read() - JOY_CENTRO;
+
+    adc_select_input(1);
+    *x = (int)adc_read() - JOY_CENTRO;
 }
 
 void input_init(void) {
@@ -53,25 +72,32 @@ void input_init(void) {
 }
 
 bool btn_a_apertou(void) {
-    if (_a_flag) { _a_flag = false; return true; }
+    if (_a_flag) {
+        _a_flag = false;
+        return true;
+    }
     return false;
 }
 
 bool btn_b_apertou(void) {
-    if (_b_flag) { _b_flag = false; return true; }
+    if (_b_flag) {
+        _b_flag = false;
+        return true;
+    }
     return false;
 }
 
 bool joy_btn_apertou(void) {
-    if (_j_flag) { _j_flag = false; return true; }
+    if (_j_flag) {
+        _j_flag = false;
+        return true;
+    }
     return false;
 }
 
 direcao_t joy_direcao(void) {
-    adc_select_input(0);
-    int y = (int)adc_read() - JOY_CENTRO;
-    adc_select_input(1);
-    int x = (int)adc_read() - JOY_CENTRO;
+    int x, y;
+    joy_ler_xy(&x, &y);
 
     int ax = x < 0 ? -x : x;
     int ay = y < 0 ? -y : y;
@@ -83,4 +109,46 @@ direcao_t joy_direcao(void) {
         return x > 0 ? DIR_DIREITA : DIR_ESQUERDA;
     else
         return y > 0 ? DIR_CIMA : DIR_BAIXO;
+}
+
+int8_t joy_quadrante_diagonal(void) {
+    int x, y;
+    joy_ler_xy(&x, &y);
+
+    int ax = x < 0 ? -x : x;
+    int ay = y < 0 ? -y : y;
+
+    // zona morta pequena para não exigir perfeição
+    if (ax < DIAG_ZONA_MORTA && ay < DIAG_ZONA_MORTA)
+        return -1;
+
+    // precisa haver componente clara nos dois eixos
+    if (ax < DIAG_MIN_EIXO || ay < DIAG_MIN_EIXO)
+        return -1;
+
+    // precisa ser um movimento suficientemente "de canto"
+    if ((ax + ay) < DIAG_MIN_SOMA)
+        return -1;
+
+    // rejeita movimento quase puro horizontal/vertical
+    {
+        int maior = ax > ay ? ax : ay;
+        int menor = ax > ay ? ay : ax;
+
+        // aceita diagonais bem abertas, mas não qualquer coisa
+        if (menor * 4 < maior)
+            return -1;
+    }
+
+    // quadrantes do Simon:
+    // q0 = superior esquerdo
+    // q1 = superior direito
+    // q2 = inferior direito
+    // q3 = inferior esquerdo
+    if (x < 0 && y > 0) return 0;
+    if (x > 0 && y > 0) return 1;
+    if (x > 0 && y < 0) return 2;
+    if (x < 0 && y < 0) return 3;
+
+    return -1;
 }

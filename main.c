@@ -67,16 +67,6 @@ static void rng_init(void) {
     printf("[rng] seed ok\n");
 }
 
-static int8_t direcao_para_quadrante(direcao_t dir) {
-    switch (dir) {
-        case DIR_CIMA:     return 0;
-        case DIR_DIREITA:  return 1;
-        case DIR_BAIXO:    return 2;
-        case DIR_ESQUERDA: return 3;
-        default:           return -1;
-    }
-}
-
 static void navegar_menu(void) {
     uint32_t agora = agora_ms();
     if (agora - ultimo_mov < 250) return;
@@ -136,7 +126,7 @@ static bool simon_mostrar_nivel(void) {
     display_simon_jogue(simon_nivel, 1);
     matriz_todos_fracos();
 
-    while (joy_direcao() != DIR_NENHUM) {
+    while (joy_quadrante_diagonal() >= 0) {
         if (btn_b_apertou()) {
             printf("[simon] saiu aguardando neutro\n");
             voltar_menu();
@@ -220,18 +210,15 @@ static void tick_simon(void) {
         return;
     }
 
-    direcao_t dir = joy_direcao();
+    int8_t q = joy_quadrante_diagonal();
 
-    if (dir == DIR_NENHUM) {
+    if (q < 0) {
         simon_joy_livre = true;
         return;
     }
 
     if (!simon_joy_livre) return;
     simon_joy_livre = false;
-
-    int8_t q = direcao_para_quadrante(dir);
-    if (q < 0) return;
 
     printf("[simon] entrada q=%d passo=%d\n", q, simon_indice + 1);
 
