@@ -59,7 +59,7 @@ static uint8_t reflexo_antecipacoes = 0;
 static uint32_t reflexo_soma_ms = 0;
 static uint32_t reflexo_deadline = 0;
 static uint32_t reflexo_feedback_ate = 0;
-static absolute_time_t reflexo_inicio;
+static uint32_t reflexo_inicio_us = 0;
 
 static flash_dados_t dados_flash;
 static uint8_t flash_setor[FLASH_SECTOR_SIZE];
@@ -528,21 +528,21 @@ static void tick_reflexo(void) {
 
         if (agora_ms() >= reflexo_deadline) {
             reflexo_estado = REFLEXO_PRONTO;
-            reflexo_inicio = get_absolute_time();
 
             matriz_quadrante_padrao(reflexo_q);
+            reflexo_inicio_us = time_us_32();
+
             display_reflexo_pronto(reflexo_rodada);
             buzzer_simon_tom(reflexo_q);
             rgb_set(0, 0, 20);
 
             printf("[reflexo] alvo liberado q=%d\n", reflexo_q);
-        }
+}
         break;
 
     case REFLEXO_PRONTO:
         if (btn_a_apertou()) {
-            uint32_t tempo_ms =
-                (uint32_t)(absolute_time_diff_us(reflexo_inicio, get_absolute_time()) / 1000);
+            uint32_t tempo_ms = (btn_a_tempo_us() - reflexo_inicio_us) / 1000;
 
             buzzer_parar();
             reflexo_feedback_tempo(tempo_ms);
@@ -656,6 +656,6 @@ int main(void) {
     while (true) {
         buzzer_tick();
         maquina_estados();
-        sleep_ms(50);
+        sleep_ms(10);
     }
 }

@@ -65,6 +65,7 @@ bool      btn_b_apertou(void);
 bool      joy_btn_apertou(void);
 direcao_t joy_direcao(void);
 int8_t    joy_quadrante_diagonal(void);
+uint32_t  btn_a_tempo_us(void);
 
 // display.c
 void display_init(void);

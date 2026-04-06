@@ -9,6 +9,7 @@ static volatile bool _j_flag = false;
 static volatile uint32_t _a_tempo = 0;
 static volatile uint32_t _b_tempo = 0;
 static volatile uint32_t _j_tempo = 0;
+static volatile uint32_t _a_press_us = 0;
 
 #define DEBOUNCE 200
 
@@ -27,6 +28,7 @@ static void gpio_callback(uint gpio, uint32_t events) {
     if (gpio == BTN_A && agora - _a_tempo > DEBOUNCE) {
         _a_flag = true;
         _a_tempo = agora;
+        _a_press_us = time_us_32();
     }
     if (gpio == BTN_B && agora - _b_tempo > DEBOUNCE) {
         _b_flag = true;
@@ -93,6 +95,10 @@ bool joy_btn_apertou(void) {
         return true;
     }
     return false;
+}
+
+uint32_t btn_a_tempo_us(void) {
+    return _a_press_us;
 }
 
 direcao_t joy_direcao(void) {
