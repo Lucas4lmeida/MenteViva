@@ -73,9 +73,10 @@ void display_simon_observe(uint8_t nivel);
 void display_simon_jogue(uint8_t nivel, uint8_t passo);
 void display_simon_resultado(const char *linha1, const char *linha2);
 
-void display_reflexo_aguarde(void);
-void display_reflexo_pronto(void);
-void display_reflexo_resultado(const char *linha1, const char *linha2);
+void display_reflexo_aguarde(uint8_t rodada);
+void display_reflexo_pronto(uint8_t rodada);
+void display_reflexo_parcial(uint8_t rodada, bool antecipou, uint32_t tempo_ms);
+void display_reflexo_final(uint32_t media_ms, uint8_t antecipacoes);
 
 // buzzer.c
 void buzzer_init(void);

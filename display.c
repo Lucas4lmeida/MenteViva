@@ -234,41 +234,80 @@ void display_simon_resultado(const char *linha1, const char *linha2) {
     ssd1306_send_data(&oled);
 }
 
-void display_reflexo_aguarde(void) {
+void display_reflexo_aguarde(uint8_t rodada) {
+    char buf[24];
+
     ssd1306_fill(&oled, false);
 
-    draw_str(26, 0, 1, "REFLEXO");
+    draw_str(24, 0, 1, "REFLEXO");
     ssd1306_hline(&oled, 0, 127, 10, true);
 
-    draw_str(0, 20, 1, "Espere o");
-    draw_str(0, 34, 1, "sinal...");
-    draw_str(0, 48, 1, "B: voltar");
+    snprintf(buf, sizeof(buf), "Rodada: %d/5", rodada);
+    draw_str(0, 16, 1, buf);
+
+    draw_str(0, 30, 1, "Espere o");
+    draw_str(0, 42, 1, "sinal...");
+    draw_str(0, 56, 1, "B: voltar");
 
     ssd1306_send_data(&oled);
 }
 
-void display_reflexo_pronto(void) {
+void display_reflexo_pronto(uint8_t rodada) {
+    char buf[24];
+
     ssd1306_fill(&oled, false);
 
-    draw_str(26, 0, 1, "REFLEXO");
+    draw_str(24, 0, 1, "REFLEXO");
     ssd1306_hline(&oled, 0, 127, 10, true);
 
-    draw_str(0, 20, 1, "APERTE A!");
-    draw_str(0, 36, 1, "O mais");
-    draw_str(0, 50, 1, "rapido");
+    snprintf(buf, sizeof(buf), "Rodada: %d/5", rodada);
+    draw_str(0, 16, 1, buf);
+
+    draw_str(0, 30, 1, "APERTE A!");
+    draw_str(0, 44, 1, "Agora");
 
     ssd1306_send_data(&oled);
 }
 
-void display_reflexo_resultado(const char *linha1, const char *linha2) {
+void display_reflexo_parcial(uint8_t rodada, bool antecipou, uint32_t tempo_ms) {
+    char buf[24];
+
     ssd1306_fill(&oled, false);
 
-    draw_str(26, 0, 1, "REFLEXO");
+    draw_str(24, 0, 1, "REFLEXO");
     ssd1306_hline(&oled, 0, 127, 10, true);
 
-    draw_str(0, 22, 1, linha1);
-    draw_str(0, 38, 1, linha2);
-    draw_str(0, 54, 1, "A: novo B: sair");
+    snprintf(buf, sizeof(buf), "Rodada: %d/5", rodada);
+    draw_str(0, 16, 1, buf);
+
+    if (antecipou) {
+        draw_str(0, 32, 1, "Muito cedo!");
+        snprintf(buf, sizeof(buf), "Penal: %lu ms", tempo_ms);
+    } else {
+        draw_str(0, 32, 1, "Boa!");
+        snprintf(buf, sizeof(buf), "Tempo: %lu ms", tempo_ms);
+    }
+
+    draw_str(0, 46, 1, buf);
+    ssd1306_send_data(&oled);
+}
+
+void display_reflexo_final(uint32_t media_ms, uint8_t antecipacoes) {
+    char buf1[24];
+    char buf2[24];
+
+    ssd1306_fill(&oled, false);
+
+    draw_str(24, 0, 1, "REFLEXO");
+    ssd1306_hline(&oled, 0, 127, 10, true);
+
+    snprintf(buf1, sizeof(buf1), "Media: %lu ms", media_ms);
+    snprintf(buf2, sizeof(buf2), "Cedos: %d", antecipacoes);
+
+    draw_str(0, 18, 1, "Fim da partida");
+    draw_str(0, 34, 1, buf1);
+    draw_str(0, 46, 1, buf2);
+    draw_str(0, 56, 1, "A: novo B: sair");
 
     ssd1306_send_data(&oled);
 }

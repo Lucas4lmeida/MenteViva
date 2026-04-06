@@ -7,12 +7,15 @@
 
 app_t app;
 
-#define SIMON_MAX_NIVEIS 5
+#define SIMON_MAX_NIVEIS       5
+#define REFLEXO_RODADAS        5
+#define REFLEXO_PENALIDADE_MS  1000
 
 typedef enum {
     REFLEXO_ESPERANDO = 0,
     REFLEXO_PRONTO,
-    REFLEXO_RESULTADO
+    REFLEXO_FEEDBACK,
+    REFLEXO_FINAL
 } reflexo_estado_t;
 
 static uint8_t simon_seq[SIMON_MAX_NIVEIS];
@@ -22,7 +25,11 @@ static bool simon_joy_livre = false;
 
 static reflexo_estado_t reflexo_estado = REFLEXO_ESPERANDO;
 static uint8_t reflexo_q = 0;
+static uint8_t reflexo_rodada = 1;
+static uint8_t reflexo_antecipacoes = 0;
+static uint32_t reflexo_soma_ms = 0;
 static uint32_t reflexo_deadline = 0;
+static uint32_t reflexo_feedback_ate = 0;
 static absolute_time_t reflexo_inicio;
 
 static uint32_t ultimo_mov = 0;
@@ -251,45 +258,71 @@ static void tick_simon(void) {
     rgb_set(0, 0, 20);
 }
 
-static void reflexo_nova_rodada(void) {
+static void reflexo_agendar_rodada(void) {
     reflexo_q = rand() % 4;
     reflexo_deadline = agora_ms() + 1200 + (rand() % 1800);
     reflexo_estado = REFLEXO_ESPERANDO;
 
     matriz_limpar();
     rgb_set(10, 0, 10);
-    display_reflexo_aguarde();
+    display_reflexo_aguarde(reflexo_rodada);
 
-    printf("[reflexo] nova rodada q=%d\n", reflexo_q);
+    printf("[reflexo] rodada=%d alvo=%d\n", reflexo_rodada, reflexo_q);
 }
 
 static void reflexo_iniciar(void) {
     app.tela = TELA_REFLEXO;
-    reflexo_nova_rodada();
+    reflexo_rodada = 1;
+    reflexo_antecipacoes = 0;
+    reflexo_soma_ms = 0;
+    reflexo_feedback_ate = 0;
+
+    printf("[reflexo] iniciar\n");
+    reflexo_agendar_rodada();
 }
 
-static void reflexo_resultado_tempo(uint32_t tempo_ms) {
-    char buf[24];
+static void reflexo_finalizar_partida(void) {
+    uint32_t media = reflexo_soma_ms / REFLEXO_RODADAS;
 
     matriz_limpar();
     rgb_set(0, 20, 0);
+    display_reflexo_final(media, reflexo_antecipacoes);
+    reflexo_estado = REFLEXO_FINAL;
 
-    snprintf(buf, sizeof(buf), "Tempo: %lu ms", tempo_ms);
-    display_reflexo_resultado("Boa!", buf);
+    printf("[reflexo] fim media=%lu antecip=%d\n", media, reflexo_antecipacoes);
+}
 
-    buzzer_tom(1000, 80);
-    reflexo_estado = REFLEXO_RESULTADO;
+static void reflexo_avancar_ou_finalizar(void) {
+    if (reflexo_rodada >= REFLEXO_RODADAS) {
+        reflexo_finalizar_partida();
+        return;
+    }
+
+    reflexo_rodada++;
+    reflexo_agendar_rodada();
+}
+
+static void reflexo_feedback_tempo(uint32_t tempo_ms) {
+    reflexo_soma_ms += tempo_ms;
+
+    matriz_limpar();
+    rgb_set(0, 20, 0);
+    display_reflexo_parcial(reflexo_rodada, false, tempo_ms);
+    reflexo_estado = REFLEXO_FEEDBACK;
+    reflexo_feedback_ate = agora_ms() + 900;
 
     printf("[reflexo] tempo=%lu ms\n", tempo_ms);
 }
 
-static void reflexo_resultado_antecipou(void) {
+static void reflexo_feedback_antecipou(void) {
+    reflexo_soma_ms += REFLEXO_PENALIDADE_MS;
+    reflexo_antecipacoes++;
+
     matriz_limpar();
     rgb_set(20, 0, 0);
-    display_reflexo_resultado("Muito cedo!", "Tente de novo");
-
-    buzzer_tom(220, 250);
-    reflexo_estado = REFLEXO_RESULTADO;
+    display_reflexo_parcial(reflexo_rodada, true, REFLEXO_PENALIDADE_MS);
+    reflexo_estado = REFLEXO_FEEDBACK;
+    reflexo_feedback_ate = agora_ms() + 900;
 
     printf("[reflexo] antecipou\n");
 }
@@ -305,7 +338,8 @@ static void tick_reflexo(void) {
 
     case REFLEXO_ESPERANDO:
         if (btn_a_apertou()) {
-            reflexo_resultado_antecipou();
+            buzzer_tom(220, 200);
+            reflexo_feedback_antecipou();
             return;
         }
 
@@ -314,7 +348,7 @@ static void tick_reflexo(void) {
             reflexo_inicio = get_absolute_time();
 
             matriz_quadrante_padrao(reflexo_q);
-            display_reflexo_pronto();
+            display_reflexo_pronto(reflexo_rodada);
             buzzer_simon_tom(reflexo_q);
             rgb_set(0, 0, 20);
 
@@ -328,13 +362,19 @@ static void tick_reflexo(void) {
                 (uint32_t)(absolute_time_diff_us(reflexo_inicio, get_absolute_time()) / 1000);
 
             buzzer_parar();
-            reflexo_resultado_tempo(tempo_ms);
+            reflexo_feedback_tempo(tempo_ms);
         }
         break;
 
-    case REFLEXO_RESULTADO:
+    case REFLEXO_FEEDBACK:
+        if (agora_ms() >= reflexo_feedback_ate) {
+            reflexo_avancar_ou_finalizar();
+        }
+        break;
+
+    case REFLEXO_FINAL:
         if (btn_a_apertou()) {
-            reflexo_nova_rodada();
+            reflexo_iniciar();
         }
         break;
     }
