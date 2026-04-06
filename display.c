@@ -311,3 +311,27 @@ void display_reflexo_final(uint32_t media_ms, uint8_t antecipacoes) {
 
     ssd1306_send_data(&oled);
 }
+
+void display_historico(int simon_ult, const char *trend_simon, int reflexo_ult, const char *trend_reflexo) {
+    char buf[24];
+
+    ssd1306_fill(&oled, false);
+
+    draw_str(22, 0, 1, "HISTORICO");
+    ssd1306_hline(&oled, 0, 127, 10, true);
+
+    if (simon_ult >= 0)
+        snprintf(buf, sizeof(buf), "S:%d T:%s", simon_ult, trend_simon);
+    else
+        snprintf(buf, sizeof(buf), "S:- T:%s", trend_simon);
+    draw_str(0, 20, 1, buf);
+
+    if (reflexo_ult >= 0)
+        snprintf(buf, sizeof(buf), "R:%dms T:%s", reflexo_ult, trend_reflexo);
+    else
+        snprintf(buf, sizeof(buf), "R:- T:%s", trend_reflexo);
+    draw_str(0, 36, 1, buf);
+
+    draw_str(0, 54, 1, "B: voltar");
+    ssd1306_send_data(&oled);
+}

@@ -1,8 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <stddef.h>
 #include "pico/stdlib.h"
 #include "hardware/pwm.h"
 #include "hardware/adc.h"
+#include "hardware/flash.h"
+#include "hardware/sync.h"
+#include "hardware/regs/addressmap.h"
 #include "menteviva.h"
 
 app_t app;
@@ -10,6 +15,10 @@ app_t app;
 #define SIMON_MAX_NIVEIS       5
 #define REFLEXO_RODADAS        5
 #define REFLEXO_PENALIDADE_MS  1000
+#define HIST_MAX               6
+#define DADOS_MAGIC            0x4D563631u
+#define DADOS_VERSAO           1
+#define FLASH_TARGET_OFFSET    (PICO_FLASH_SIZE_BYTES - FLASH_SECTOR_SIZE)
 
 typedef enum {
     REFLEXO_ESPERANDO = 0,
@@ -17,6 +26,26 @@ typedef enum {
     REFLEXO_FEEDBACK,
     REFLEXO_FINAL
 } reflexo_estado_t;
+
+typedef enum {
+    TEND_ND = 0,
+    TEND_MEL,
+    TEND_EST,
+    TEND_QDA
+} tendencia_t;
+
+typedef struct {
+    uint32_t magic;
+    uint16_t version;
+    uint16_t reservado0;
+    uint8_t  simon_count;
+    uint8_t  reflexo_count;
+    uint8_t  reservado1[2];
+    uint8_t  simon_hist[HIST_MAX];
+    uint8_t  reservado2[2];
+    uint16_t reflexo_hist[HIST_MAX];
+    uint32_t checksum;
+} flash_dados_t;
 
 static uint8_t simon_seq[SIMON_MAX_NIVEIS];
 static uint8_t simon_nivel = 1;
@@ -31,6 +60,9 @@ static uint32_t reflexo_soma_ms = 0;
 static uint32_t reflexo_deadline = 0;
 static uint32_t reflexo_feedback_ate = 0;
 static absolute_time_t reflexo_inicio;
+
+static flash_dados_t dados_flash;
+static uint8_t flash_setor[FLASH_SECTOR_SIZE];
 
 static uint32_t ultimo_mov = 0;
 
@@ -65,6 +97,164 @@ static void rng_init(void) {
 
     srand(seed);
     printf("[rng] seed ok\n");
+}
+
+static uint32_t flash_checksum(const flash_dados_t *d) {
+    const uint8_t *p = (const uint8_t *)d;
+    uint32_t acc = 5381u;
+
+    for (size_t i = 0; i < offsetof(flash_dados_t, checksum); i++) {
+        acc = ((acc << 5) + acc) ^ p[i];
+    }
+
+    return acc;
+}
+
+static void flash_padrao(void) {
+    memset(&dados_flash, 0, sizeof(dados_flash));
+    dados_flash.magic = DADOS_MAGIC;
+    dados_flash.version = DADOS_VERSAO;
+}
+
+static bool flash_valido(const flash_dados_t *d) {
+    if (d->magic != DADOS_MAGIC) return false;
+    if (d->version != DADOS_VERSAO) return false;
+    if (d->simon_count > HIST_MAX) return false;
+    if (d->reflexo_count > HIST_MAX) return false;
+    if (d->checksum != flash_checksum(d)) return false;
+    return true;
+}
+
+static void flash_carregar(void) {
+    const flash_dados_t *gravado = (const flash_dados_t *)(XIP_BASE + FLASH_TARGET_OFFSET);
+
+    if (flash_valido(gravado)) {
+        dados_flash = *gravado;
+        printf("[flash] carregado s=%d r=%d\n", dados_flash.simon_count, dados_flash.reflexo_count);
+    } else {
+        flash_padrao();
+        printf("[flash] vazio/invalido\n");
+    }
+}
+
+static void flash_salvar(void) {
+    dados_flash.magic = DADOS_MAGIC;
+    dados_flash.version = DADOS_VERSAO;
+    dados_flash.checksum = flash_checksum(&dados_flash);
+
+    memset(flash_setor, 0xFF, sizeof(flash_setor));
+    memcpy(flash_setor, &dados_flash, sizeof(dados_flash));
+
+    uint32_t ints = save_and_disable_interrupts();
+    flash_range_erase(FLASH_TARGET_OFFSET, FLASH_SECTOR_SIZE);
+    flash_range_program(FLASH_TARGET_OFFSET, flash_setor, FLASH_SECTOR_SIZE);
+    restore_interrupts(ints);
+
+    printf("[flash] salvo\n");
+}
+
+static void hist_add_u8(uint8_t *hist, uint8_t *count, uint8_t valor) {
+    if (*count < HIST_MAX) {
+        hist[*count] = valor;
+        (*count)++;
+    } else {
+        memmove(hist, hist + 1, HIST_MAX - 1);
+        hist[HIST_MAX - 1] = valor;
+    }
+}
+
+static void hist_add_u16(uint16_t *hist, uint8_t *count, uint16_t valor) {
+    if (*count < HIST_MAX) {
+        hist[*count] = valor;
+        (*count)++;
+    } else {
+        memmove(hist, hist + 1, (HIST_MAX - 1) * sizeof(uint16_t));
+        hist[HIST_MAX - 1] = valor;
+    }
+}
+
+static void registrar_score_simon(uint8_t score) {
+    hist_add_u8(dados_flash.simon_hist, &dados_flash.simon_count, score);
+    flash_salvar();
+    printf("[score] simon=%d\n", score);
+}
+
+static void registrar_score_reflexo(uint16_t media_ms) {
+    hist_add_u16(dados_flash.reflexo_hist, &dados_flash.reflexo_count, media_ms);
+    flash_salvar();
+    printf("[score] reflexo=%d ms\n", media_ms);
+}
+
+static tendencia_t tendencia_simon(void) {
+    if (dados_flash.simon_count < 6) return TEND_ND;
+
+    uint32_t prev =
+        dados_flash.simon_hist[dados_flash.simon_count - 6] +
+        dados_flash.simon_hist[dados_flash.simon_count - 5] +
+        dados_flash.simon_hist[dados_flash.simon_count - 4];
+
+    uint32_t recent =
+        dados_flash.simon_hist[dados_flash.simon_count - 3] +
+        dados_flash.simon_hist[dados_flash.simon_count - 2] +
+        dados_flash.simon_hist[dados_flash.simon_count - 1];
+
+    if (recent * 100 >= prev * 115) return TEND_MEL;
+    if (recent * 100 <= prev * 85)  return TEND_QDA;
+    return TEND_EST;
+}
+
+static tendencia_t tendencia_reflexo(void) {
+    if (dados_flash.reflexo_count < 6) return TEND_ND;
+
+    uint32_t prev =
+        dados_flash.reflexo_hist[dados_flash.reflexo_count - 6] +
+        dados_flash.reflexo_hist[dados_flash.reflexo_count - 5] +
+        dados_flash.reflexo_hist[dados_flash.reflexo_count - 4];
+
+    uint32_t recent =
+        dados_flash.reflexo_hist[dados_flash.reflexo_count - 3] +
+        dados_flash.reflexo_hist[dados_flash.reflexo_count - 2] +
+        dados_flash.reflexo_hist[dados_flash.reflexo_count - 1];
+
+    if (recent * 100 <= prev * 85) return TEND_MEL;
+    if (recent * 100 >= prev * 115) return TEND_QDA;
+    return TEND_EST;
+}
+
+static const char *tendencia_txt(tendencia_t t) {
+    switch (t) {
+        case TEND_MEL: return "MEL";
+        case TEND_EST: return "EST";
+        case TEND_QDA: return "QDA";
+        default:       return "N/D";
+    }
+}
+
+static int simon_ult(void) {
+    if (dados_flash.simon_count == 0) return -1;
+    return dados_flash.simon_hist[dados_flash.simon_count - 1];
+}
+
+static int reflexo_ult(void) {
+    if (dados_flash.reflexo_count == 0) return -1;
+    return dados_flash.reflexo_hist[dados_flash.reflexo_count - 1];
+}
+
+static void atualizar_historico(void) {
+    display_historico(
+        simon_ult(),
+        tendencia_txt(tendencia_simon()),
+        reflexo_ult(),
+        tendencia_txt(tendencia_reflexo())
+    );
+}
+
+static void entrar_historico(void) {
+    app.tela = TELA_HISTORICO;
+    matriz_limpar();
+    rgb_set(0, 0, 20);
+    atualizar_historico();
+    printf("[hist] aberto\n");
 }
 
 static void navegar_menu(void) {
@@ -126,7 +316,7 @@ static bool simon_mostrar_nivel(void) {
     display_simon_jogue(simon_nivel, 1);
     matriz_todos_fracos();
 
-    while (joy_quadrante_diagonal() >= 0) {
+    while (joy_direcao() != DIR_NENHUM || joy_quadrante_diagonal() >= 0) {
         if (btn_b_apertou()) {
             printf("[simon] saiu aguardando neutro\n");
             voltar_menu();
@@ -155,6 +345,8 @@ static void simon_erro(void) {
     char buf[24];
     uint8_t score = (simon_nivel > 0) ? (simon_nivel - 1) : 0;
 
+    registrar_score_simon(score);
+
     printf("[simon] erro no nivel %d\n", simon_nivel);
 
     rgb_set(20, 0, 0);
@@ -169,6 +361,8 @@ static void simon_erro(void) {
 
 static void simon_vitoria(void) {
     char buf[24];
+
+    registrar_score_simon(SIMON_MAX_NIVEIS);
 
     printf("[simon] concluiu nivel %d\n", SIMON_MAX_NIVEIS);
 
@@ -271,6 +465,8 @@ static void reflexo_iniciar(void) {
 static void reflexo_finalizar_partida(void) {
     uint32_t media = reflexo_soma_ms / REFLEXO_RODADAS;
 
+    registrar_score_reflexo((uint16_t)media);
+
     matriz_limpar();
     rgb_set(0, 20, 0);
     display_reflexo_final(media, reflexo_antecipacoes);
@@ -367,6 +563,15 @@ static void tick_reflexo(void) {
     }
 }
 
+static void tick_historico(void) {
+    atualizar_historico();
+
+    if (btn_b_apertou()) {
+        printf("[hist] saiu\n");
+        voltar_menu();
+    }
+}
+
 static void maquina_estados(void) {
     switch (app.tela) {
 
@@ -392,8 +597,7 @@ static void maquina_estados(void) {
             } else if (app.cursor_menu == 1) {
                 reflexo_iniciar();
             } else {
-                buzzer_tom(880, 100);
-                // TODO: implementar historico nos proximos dias
+                entrar_historico();
             }
         }
         break;
@@ -404,6 +608,10 @@ static void maquina_estados(void) {
 
     case TELA_REFLEXO:
         tick_reflexo();
+        break;
+
+    case TELA_HISTORICO:
+        tick_historico();
         break;
     }
 }
@@ -432,6 +640,8 @@ int main(void) {
     display_init();
     display_boot();
     printf("[init] display ok\n");
+
+    flash_carregar();
 
     sleep_ms(2000);
     app.tela = TELA_BOOT;

@@ -54,6 +54,8 @@ target_link_libraries(menteviva
     hardware_i2c
     hardware_pwm
     hardware_pio
+    hardware_flash
+    hardware_sync
 )
 
 pico_enable_stdio_usb(menteviva 1)

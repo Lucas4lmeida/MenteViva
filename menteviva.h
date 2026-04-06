@@ -47,7 +47,8 @@ typedef enum {
     TELA_BOOT,
     TELA_MENU,
     TELA_SIMON,
-    TELA_REFLEXO
+    TELA_REFLEXO,
+    TELA_HISTORICO
 } tela_t;
 
 typedef struct {
@@ -69,6 +70,7 @@ int8_t    joy_quadrante_diagonal(void);
 void display_init(void);
 void display_boot(void);
 void display_menu(uint8_t cursor);
+void display_historico(int simon_ult, const char *trend_simon, int reflexo_ult, const char *trend_reflexo);
 
 void display_simon_observe(uint8_t nivel);
 void display_simon_jogue(uint8_t nivel, uint8_t passo);
