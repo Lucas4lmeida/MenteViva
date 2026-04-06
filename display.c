@@ -214,10 +214,10 @@ void display_simon_jogue(uint8_t nivel, uint8_t passo) {
     draw_str(0, 16, 1, buf);
 
     snprintf(buf, sizeof(buf), "Passo: %d/%d", passo, nivel);
-    draw_str(0, 28, 1, buf);
+    draw_str(0, 30, 1, buf);
 
-    draw_str(0, 42, 1, "Repita com");
-    draw_str(0, 54, 1, "o joystick");
+    draw_str(0, 44, 1, "Repita com");
+    draw_str(0, 56, 1, "joystick");
 
     ssd1306_send_data(&oled);
 }
@@ -230,6 +230,45 @@ void display_simon_resultado(const char *linha1, const char *linha2) {
 
     draw_str(0, 24, 1, linha1);
     draw_str(0, 40, 1, linha2);
+
+    ssd1306_send_data(&oled);
+}
+
+void display_reflexo_aguarde(void) {
+    ssd1306_fill(&oled, false);
+
+    draw_str(26, 0, 1, "REFLEXO");
+    ssd1306_hline(&oled, 0, 127, 10, true);
+
+    draw_str(0, 20, 1, "Espere o");
+    draw_str(0, 34, 1, "sinal...");
+    draw_str(0, 48, 1, "B: voltar");
+
+    ssd1306_send_data(&oled);
+}
+
+void display_reflexo_pronto(void) {
+    ssd1306_fill(&oled, false);
+
+    draw_str(26, 0, 1, "REFLEXO");
+    ssd1306_hline(&oled, 0, 127, 10, true);
+
+    draw_str(0, 20, 1, "APERTE A!");
+    draw_str(0, 36, 1, "O mais");
+    draw_str(0, 50, 1, "rapido");
+
+    ssd1306_send_data(&oled);
+}
+
+void display_reflexo_resultado(const char *linha1, const char *linha2) {
+    ssd1306_fill(&oled, false);
+
+    draw_str(26, 0, 1, "REFLEXO");
+    ssd1306_hline(&oled, 0, 127, 10, true);
+
+    draw_str(0, 22, 1, linha1);
+    draw_str(0, 38, 1, linha2);
+    draw_str(0, 54, 1, "A: novo B: sair");
 
     ssd1306_send_data(&oled);
 }

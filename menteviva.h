@@ -20,6 +20,7 @@
 #define LED_R           13
 #define LED_G           11
 #define LED_B           12
+#define MIC_PIN         28
 
 // oled
 #define OLED_W          128
@@ -45,7 +46,8 @@ typedef enum {
 typedef enum {
     TELA_BOOT,
     TELA_MENU,
-    TELA_SIMON
+    TELA_SIMON,
+    TELA_REFLEXO
 } tela_t;
 
 typedef struct {
@@ -66,9 +68,14 @@ direcao_t joy_direcao(void);
 void display_init(void);
 void display_boot(void);
 void display_menu(uint8_t cursor);
+
 void display_simon_observe(uint8_t nivel);
 void display_simon_jogue(uint8_t nivel, uint8_t passo);
 void display_simon_resultado(const char *linha1, const char *linha2);
+
+void display_reflexo_aguarde(void);
+void display_reflexo_pronto(void);
+void display_reflexo_resultado(const char *linha1, const char *linha2);
 
 // buzzer.c
 void buzzer_init(void);
