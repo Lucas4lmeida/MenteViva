@@ -184,26 +184,52 @@ void display_menu(uint8_t cursor) {
     ssd1306_send_data(&oled);
 }
 
-void display_teste_memoria(direcao_t dir, int8_t quadrante) {
-    const char *nomes_dir[] = {"NENHUM", "CIMA", "BAIXO", "ESQUERDA", "DIREITA"};
+void display_simon_observe(uint8_t nivel) {
     char buf[24];
 
     ssd1306_fill(&oled, false);
 
-    draw_str(8, 0, 1, "MEMORIA - TESTE");
+    draw_str(34, 0, 1, "SIMON");
     ssd1306_hline(&oled, 0, 127, 10, true);
 
-    draw_str(0, 16, 1, "Joy acende quad.");
-    draw_str(0, 28, 1, "B: voltar");
+    snprintf(buf, sizeof(buf), "Nivel: %d", nivel);
+    draw_str(0, 18, 1, buf);
 
-    snprintf(buf, sizeof(buf), "DIR: %s", nomes_dir[dir]);
-    draw_str(0, 42, 1, buf);
+    draw_str(0, 32, 1, "Observe a");
+    draw_str(0, 44, 1, "sequencia");
+    draw_str(0, 56, 1, "B: voltar");
 
-    if (quadrante >= 0 && quadrante < 4)
-        snprintf(buf, sizeof(buf), "Q: %d", quadrante);
-    else
-        snprintf(buf, sizeof(buf), "Q: -");
+    ssd1306_send_data(&oled);
+}
 
-    draw_str(0, 54, 1, buf);
+void display_simon_jogue(uint8_t nivel, uint8_t passo) {
+    char buf[24];
+
+    ssd1306_fill(&oled, false);
+
+    draw_str(34, 0, 1, "SIMON");
+    ssd1306_hline(&oled, 0, 127, 10, true);
+
+    snprintf(buf, sizeof(buf), "Nivel: %d", nivel);
+    draw_str(0, 16, 1, buf);
+
+    snprintf(buf, sizeof(buf), "Passo: %d/%d", passo, nivel);
+    draw_str(0, 28, 1, buf);
+
+    draw_str(0, 42, 1, "Repita com");
+    draw_str(0, 54, 1, "o joystick");
+
+    ssd1306_send_data(&oled);
+}
+
+void display_simon_resultado(const char *linha1, const char *linha2) {
+    ssd1306_fill(&oled, false);
+
+    draw_str(34, 0, 1, "SIMON");
+    ssd1306_hline(&oled, 0, 127, 10, true);
+
+    draw_str(0, 24, 1, linha1);
+    draw_str(0, 40, 1, linha2);
+
     ssd1306_send_data(&oled);
 }

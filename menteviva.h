@@ -45,7 +45,7 @@ typedef enum {
 typedef enum {
     TELA_BOOT,
     TELA_MENU,
-    TELA_TESTE_MEMORIA
+    TELA_SIMON
 } tela_t;
 
 typedef struct {
@@ -66,7 +66,9 @@ direcao_t joy_direcao(void);
 void display_init(void);
 void display_boot(void);
 void display_menu(uint8_t cursor);
-void display_teste_memoria(direcao_t dir, int8_t quadrante);
+void display_simon_observe(uint8_t nivel);
+void display_simon_jogue(uint8_t nivel, uint8_t passo);
+void display_simon_resultado(const char *linha1, const char *linha2);
 
 // buzzer.c
 void buzzer_init(void);

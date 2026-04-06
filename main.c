@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include <string.h>
 #include "pico/stdlib.h"
 #include "pico/cyw43_arch.h"
 #include "hardware/pwm.h"
@@ -7,21 +6,26 @@
 
 app_t app;
 
+static const uint8_t simon_base[3] = {0, 1, 2};
+
+static uint8_t simon_nivel = 1;
+static uint8_t simon_indice = 0;
+static bool simon_joy_livre = false;
+static uint32_t ultimo_mov = 0;
+
 static void pwm_init_rgb(void) {
     gpio_set_function(LED_R, GPIO_FUNC_PWM);
     gpio_set_function(LED_G, GPIO_FUNC_PWM);
     gpio_set_function(LED_B, GPIO_FUNC_PWM);
+
     pwm_set_wrap(pwm_gpio_to_slice_num(LED_R), 65535);
     pwm_set_wrap(pwm_gpio_to_slice_num(LED_G), 65535);
     pwm_set_wrap(pwm_gpio_to_slice_num(LED_B), 65535);
+
     pwm_set_enabled(pwm_gpio_to_slice_num(LED_R), true);
     pwm_set_enabled(pwm_gpio_to_slice_num(LED_G), true);
     pwm_set_enabled(pwm_gpio_to_slice_num(LED_B), true);
 }
-
-static uint32_t ultimo_mov = 0;
-static uint32_t ultimo_preview = 0;
-static int8_t ultimo_quadrante = -1;
 
 static int8_t direcao_para_quadrante(direcao_t dir) {
     switch (dir) {
@@ -50,16 +54,12 @@ static void navegar_menu(void) {
     }
 }
 
-static void entrar_teste_memoria(void) {
-    app.tela = TELA_TESTE_MEMORIA;
-    ultimo_preview = 0;
-    ultimo_quadrante = -1;
-
-    display_teste_memoria(DIR_NENHUM, -1);
-    matriz_todos_fracos();
-    rgb_set(0, 0, 20);
-
-    printf("[teste] memoria pronto\n");
+static void tocar_quadrante(uint8_t q, uint16_t tempo_ms) {
+    matriz_quadrante_padrao(q);
+    buzzer_simon_tom(q);
+    sleep_ms(tempo_ms);
+    buzzer_parar();
+    matriz_limpar();
 }
 
 static void voltar_menu(void) {
@@ -69,35 +69,118 @@ static void voltar_menu(void) {
     rgb_set(0, 10, 0);
 }
 
-static void tick_teste_memoria(void) {
-    uint32_t agora = to_ms_since_boot(get_absolute_time());
-    direcao_t dir = joy_direcao();
-    int8_t q = direcao_para_quadrante(dir);
+static void simon_mostrar_nivel(void) {
+    display_simon_observe(simon_nivel);
+    rgb_set(0, 0, 20);
+    matriz_limpar();
+    sleep_ms(400);
 
-    if (btn_b_apertou()) {
-        printf("[teste] memoria encerrado\n");
-        buzzer_parar();
+    for (uint8_t i = 0; i < simon_nivel; i++) {
+        tocar_quadrante(simon_base[i], 180);
+        sleep_ms(140);
+    }
+
+    simon_indice = 0;
+    display_simon_jogue(simon_nivel, 1);
+    matriz_todos_fracos();
+
+    while (joy_direcao() != DIR_NENHUM) {
+        sleep_ms(20);
+    }
+
+    simon_joy_livre = true;
+}
+
+static void simon_iniciar(void) {
+    app.tela = TELA_SIMON;
+    simon_nivel = 1;
+    simon_indice = 0;
+    simon_joy_livre = false;
+
+    printf("[simon] iniciar\n");
+    simon_mostrar_nivel();
+}
+
+static void simon_erro(void) {
+    printf("[simon] erro no nivel %d\n", simon_nivel);
+
+    rgb_set(20, 0, 0);
+    display_simon_resultado("Errou a", "sequencia");
+    buzzer_tom(220, 300);
+    sleep_ms(900);
+
+    voltar_menu();
+}
+
+static void simon_proximo_nivel_ou_fim(void) {
+    if (simon_nivel >= 3) {
+        printf("[simon] concluiu nivel 3\n");
+
+        rgb_set(0, 20, 0);
+        display_simon_resultado("Parabens!", "Nivel 3 ok");
+        buzzer_tom(880, 80);
+        buzzer_tom(1100, 100);
+        buzzer_tom(1320, 120);
+        sleep_ms(1000);
+
         voltar_menu();
         return;
     }
 
-    display_teste_memoria(dir, q);
+    simon_nivel++;
+    printf("[simon] avancou para nivel %d\n", simon_nivel);
 
-    if (q >= 0) {
-        if (q != ultimo_quadrante || agora - ultimo_preview > 250) {
-            ultimo_quadrante = q;
-            ultimo_preview = agora;
+    rgb_set(0, 20, 0);
+    display_simon_resultado("Acertou!", "Prox nivel");
+    buzzer_tom(880, 80);
+    buzzer_tom(1100, 120);
+    sleep_ms(600);
 
-            matriz_quadrante_padrao(q);
-            buzzer_simon_tom(q);
+    simon_mostrar_nivel();
+}
 
-            printf("[teste] dir=%d q=%d\n", dir, q);
-        }
-    } else if (ultimo_quadrante != -1) {
-        ultimo_quadrante = -1;
-        matriz_todos_fracos();
-        printf("[teste] dir=0 q=-1\n");
+static void tick_simon(void) {
+    if (btn_b_apertou()) {
+        printf("[simon] saiu pelo botao B\n");
+        display_simon_resultado("Saindo...", "Voltando menu");
+        sleep_ms(500);
+        voltar_menu();
+        return;
     }
+
+    direcao_t dir = joy_direcao();
+
+    if (dir == DIR_NENHUM) {
+        simon_joy_livre = true;
+        return;
+    }
+
+    if (!simon_joy_livre) return;
+
+    simon_joy_livre = false;
+
+    int8_t q = direcao_para_quadrante(dir);
+    if (q < 0) return;
+
+    printf("[simon] entrada dir=%d q=%d passo=%d\n", dir, q, simon_indice + 1);
+
+    tocar_quadrante((uint8_t)q, 120);
+
+    if ((uint8_t)q != simon_base[simon_indice]) {
+        simon_erro();
+        return;
+    }
+
+    simon_indice++;
+
+    if (simon_indice >= simon_nivel) {
+        simon_proximo_nivel_ou_fim();
+        return;
+    }
+
+    display_simon_jogue(simon_nivel, simon_indice + 1);
+    matriz_todos_fracos();
+    rgb_set(0, 0, 20);
 }
 
 static void maquina_estados(void) {
@@ -121,7 +204,7 @@ static void maquina_estados(void) {
             printf("[menu] selecionou: %s\n", nomes[app.cursor_menu]);
 
             if (app.cursor_menu == 0) {
-                entrar_teste_memoria();
+                simon_iniciar();
             } else {
                 buzzer_tom(880, 100);
                 // TODO: implementar proximas telas nos proximos dias
@@ -129,8 +212,8 @@ static void maquina_estados(void) {
         }
         break;
 
-    case TELA_TESTE_MEMORIA:
-        tick_teste_memoria();
+    case TELA_SIMON:
+        tick_simon();
         break;
     }
 }
