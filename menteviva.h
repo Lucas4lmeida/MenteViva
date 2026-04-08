@@ -103,4 +103,12 @@ static inline void rgb_set(uint8_t r, uint8_t g, uint8_t b) {
     pwm_set_gpio_level(LED_B, b * b);
 }
 
+// wifi.c
+void wifi_init(void);
+void wifi_poll(void);
+void wifi_atualizar_dashboard(int simon_ult, const char *trend_simon,
+                              int reflexo_ult, const char *trend_reflexo);
+bool wifi_ativo(void);
+const char *wifi_ip_str(void);
+
 #endif

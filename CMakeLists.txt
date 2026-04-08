@@ -30,6 +30,7 @@ add_executable(menteviva
     buzzer.c
     display.c
     led_matrix.c
+    wifi.c
     lib/neopixel_pio/neopixel_pio.c
     lib/ssd1306/inc/ssd1306.c
 )

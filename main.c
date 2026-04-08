@@ -66,6 +66,15 @@ static uint8_t flash_setor[FLASH_SECTOR_SIZE];
 
 static uint32_t ultimo_mov = 0;
 
+/* Protótipos das funções usadas antes da definição */
+static tendencia_t tendencia_simon(void);
+static tendencia_t tendencia_reflexo(void);
+static const char *tendencia_txt(tendencia_t t);
+static int simon_ult(void);
+static int reflexo_ult(void);
+static void atualizar_historico(void);
+static void entrar_historico(void);
+
 static uint32_t agora_ms(void) {
     return to_ms_since_boot(get_absolute_time());
 }
@@ -176,12 +185,28 @@ static void hist_add_u16(uint16_t *hist, uint8_t *count, uint16_t valor) {
 static void registrar_score_simon(uint8_t score) {
     hist_add_u8(dados_flash.simon_hist, &dados_flash.simon_count, score);
     flash_salvar();
+
+    wifi_atualizar_dashboard(
+        simon_ult(),
+        tendencia_txt(tendencia_simon()),
+        reflexo_ult(),
+        tendencia_txt(tendencia_reflexo())
+    );
+
     printf("[score] simon=%d\n", score);
 }
 
 static void registrar_score_reflexo(uint16_t media_ms) {
     hist_add_u16(dados_flash.reflexo_hist, &dados_flash.reflexo_count, media_ms);
     flash_salvar();
+
+    wifi_atualizar_dashboard(
+        simon_ult(),
+        tendencia_txt(tendencia_simon()),
+        reflexo_ult(),
+        tendencia_txt(tendencia_reflexo())
+    );
+
     printf("[score] reflexo=%d ms\n", media_ms);
 }
 
@@ -537,7 +562,7 @@ static void tick_reflexo(void) {
             rgb_set(0, 0, 20);
 
             printf("[reflexo] alvo liberado q=%d\n", reflexo_q);
-}
+        }
         break;
 
     case REFLEXO_PRONTO:
@@ -643,6 +668,14 @@ int main(void) {
 
     flash_carregar();
 
+    wifi_atualizar_dashboard(
+        simon_ult(),
+        tendencia_txt(tendencia_simon()),
+        reflexo_ult(),
+        tendencia_txt(tendencia_reflexo())
+    );
+    wifi_init();
+
     sleep_ms(2000);
     app.tela = TELA_BOOT;
 
@@ -654,6 +687,7 @@ int main(void) {
     buzzer_tom(1100, 200);
 
     while (true) {
+        wifi_poll();
         buzzer_tick();
         maquina_estados();
         sleep_ms(10);
