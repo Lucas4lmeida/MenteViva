@@ -674,7 +674,23 @@ int main(void) {
         reflexo_ult(),
         tendencia_txt(tendencia_reflexo())
     );
+    rgb_set(0, 0, 20);
+    display_wifi_status(false, NULL);
+    sleep_ms(200);
+
     wifi_init();
+
+    if (wifi_ativo()) {
+    rgb_set(0, 20, 0);
+    display_wifi_status(true, wifi_ip_str());
+    printf("[wifi] status: conectado (%s)\n", wifi_ip_str());
+    } else {
+    rgb_set(20, 0, 0);
+    display_wifi_status(false, NULL);
+    printf("[wifi] status: falhou\n");
+}
+
+sleep_ms(1500);
 
     sleep_ms(2000);
     app.tela = TELA_BOOT;

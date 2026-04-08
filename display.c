@@ -166,6 +166,29 @@ void display_boot(void) {
     ssd1306_send_data(&oled);
 }
 
+void display_wifi_status(bool ok, const char *ip) {
+    char buf[24];
+
+    ssd1306_fill(&oled, false);
+
+    draw_str(28, 0, 1, "MenteViva");
+    ssd1306_hline(&oled, 0, 127, 10, true);
+
+    if (ok) {
+        draw_str(0, 22, 1, "WiFi OK");
+
+        snprintf(buf, sizeof(buf), "IP:");
+        draw_str(0, 38, 1, buf);
+
+        draw_str(0, 50, 1, ip ? ip : "0.0.0.0");
+    } else {
+        draw_str(0, 24, 1, "WiFi falhou");
+        draw_str(0, 40, 1, "Modo offline");
+    }
+
+    ssd1306_send_data(&oled);
+}
+
 void display_menu(uint8_t cursor) {
     const char *itens[] = {"Memoria", "Reflexo", "Historico"};
     char buf[24];

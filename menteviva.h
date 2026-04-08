@@ -71,6 +71,7 @@ uint32_t  btn_a_tempo_us(void);
 void display_init(void);
 void display_boot(void);
 void display_menu(uint8_t cursor);
+void display_wifi_status(bool ok, const char *ip);
 void display_historico(int simon_ult, const char *trend_simon, int reflexo_ult, const char *trend_reflexo);
 
 void display_simon_observe(uint8_t nivel);
