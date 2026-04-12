@@ -66,7 +66,6 @@ static uint8_t flash_setor[FLASH_SECTOR_SIZE];
 
 static uint32_t ultimo_mov = 0;
 
-/* Protótipos das funções usadas antes da definição */
 static tendencia_t tendencia_simon(void);
 static tendencia_t tendencia_reflexo(void);
 static const char *tendencia_txt(tendencia_t t);

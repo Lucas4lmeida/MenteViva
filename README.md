@@ -83,6 +83,13 @@ MenteViva/
 - Dashboard mais completo com gráficos
 - Heurísticas avançadas de análise cognitiva
 
+## Dependências e créditos
+
+- [Pico SDK 2.2.0](https://github.com/raspberrypi/pico-sdk) — SDK oficial do Raspberry Pi Pico
+- [lwIP](https://savannah.nongnu.org/projects/lwip/) — pilha TCP/IP leve (incluída no Pico SDK)
+- [BitDogLab-C](https://github.com/BitDogLab/BitDogLab-C) — drivers neopixel_pio e ssd1306 adaptados para o projeto
+- Toolchain: ARM GCC 14.2 Rel1, CMake 3.31.5, Ninja
+
 ## Licença
 
 MIT

@@ -13,10 +13,7 @@ static volatile uint32_t _a_press_us = 0;
 
 #define DEBOUNCE 200
 
-// Leitura diagonal do Simon:
-// - zona morta menor para não exigir canto "perfeito"
-// - eixo mínimo para evitar falso positivo
-// - relação máxima entre eixos para rejeitar movimento quase cardinal
+// limites da leitura diagonal do Simon
 #define DIAG_ZONA_MORTA 220
 #define DIAG_MIN_EIXO   280
 #define DIAG_MIN_SOMA   950
@@ -41,9 +38,7 @@ static void gpio_callback(uint gpio, uint32_t events) {
 }
 
 static void joy_ler_xy(int *x, int *y) {
-    // Mantém o mesmo mapeamento lógico já validado no projeto:
-    // adc0 entra como eixo vertical lógico
-    // adc1 entra como eixo horizontal lógico
+    // adc0 = eixo vertical, adc1 = horizontal
     adc_select_input(0);
     *y = (int)adc_read() - JOY_CENTRO;
 
@@ -124,24 +119,20 @@ int8_t joy_quadrante_diagonal(void) {
     int ax = x < 0 ? -x : x;
     int ay = y < 0 ? -y : y;
 
-    // zona morta pequena para não exigir perfeição
+    // ignora leituras muito próximas do centro
+    // rejeita movimento quase cardinal
     if (ax < DIAG_ZONA_MORTA && ay < DIAG_ZONA_MORTA)
         return -1;
 
-    // precisa haver componente clara nos dois eixos
     if (ax < DIAG_MIN_EIXO || ay < DIAG_MIN_EIXO)
         return -1;
 
-    // precisa ser um movimento suficientemente "de canto"
     if ((ax + ay) < DIAG_MIN_SOMA)
         return -1;
-
-    // rejeita movimento quase puro horizontal/vertical
     {
         int maior = ax > ay ? ax : ay;
         int menor = ax > ay ? ay : ax;
 
-        // aceita diagonais bem abertas, mas não qualquer coisa
         if (menor * 4 < maior)
             return -1;
     }

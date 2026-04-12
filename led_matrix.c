@@ -10,7 +10,7 @@ static uint8_t xy(uint8_t x, uint8_t y) {
     return (y & 1) ? (y * 5 + (4 - x)) : (y * 5 + x);
 }
 
-// Ajustado para a orientação física observada na placa
+// mapeamento físico da matriz
 static const uint8_t qx[4][4] = {
     {3, 4, 3, 4}, // q0
     {0, 1, 0, 1}, // q1
