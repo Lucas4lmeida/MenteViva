@@ -1,150 +1,88 @@
 # MenteViva
 
-MenteViva é um projeto de **estimulação cognitiva interativa para idosos**, com foco especial em pessoas que podem apresentar sinais de **declínio cognitivo**, como em quadros relacionados ao **Alzheimer**, e também em pessoas com dificuldades de coordenação e tempo de resposta, como pode acontecer em condições associadas ao **Parkinson**.
+MenteViva é um projeto de **estimulação cognitiva interativa para idosos**, com foco em pessoas que podem apresentar sinais de **declínio cognitivo**, como em quadros relacionados ao **Alzheimer**, e também em pessoas com dificuldades de coordenação e tempo de resposta, como pode acontecer em condições associadas ao **Parkinson**.
 
-O projeto foi desenvolvido na **BitDogLab v6.3** com **Raspberry Pi Pico W / RP2040**, como projeto final do programa **EmbarcaTech**.
+Desenvolvido na **BitDogLab v6.3** com **Raspberry Pi Pico W / RP2040**, como projeto final do programa **EmbarcaTech**.
 
-A proposta é reunir atividades simples, visuais e acessíveis para estimular memória, atenção e tempo de resposta, usando recursos embarcados da placa e um dashboard local via Wi-Fi.
+> **Aviso:** Este projeto tem finalidade educacional e experimental.
+> Não substitui avaliação médica, diagnóstico ou tratamento.
 
-> Este projeto tem finalidade **educacional e experimental**.  
-> Ele **não substitui avaliação médica, diagnóstico, acompanhamento clínico ou tratamento**.
+## O que o projeto faz
 
-## Objetivo
+O sistema oferece dois exercícios cognitivos e registra o desempenho ao longo do tempo.
 
-O objetivo do MenteViva é desenvolver um sistema embarcado simples e acessível que ofereça exercícios interativos voltados ao estímulo cognitivo e motor, principalmente para o público idoso.
+### Jogo Simon (Memória)
+Mostra uma sequência de quadrantes na matriz de LEDs. O usuário repete usando o joystick nas diagonais, acompanhando a posição dos cantos. A cada acerto, a sequência cresce. O score é o maior nível alcançado.
 
-A ideia principal é explorar:
+### Jogo Reflexo
+Após um intervalo aleatório, um quadrante acende e o usuário aperta o botão A o mais rápido possível. São 5 rodadas por sessão, com penalidade por antecipação. O score é o tempo médio em milissegundos.
 
-- memória visual
-- atenção
-- tempo de reação
-- interação com feedback sonoro e visual
-- acompanhamento simples de desempenho
+### Persistência e histórico
+Os resultados ficam salvos na flash interna e sobrevivem a reinicializações. A tela de histórico mostra os últimos scores e uma indicação de tendência (melhorando, estável ou queda), calculada comparando as 3 sessões mais recentes com as 3 anteriores.
 
-## Público de interesse
+### Dashboard Wi-Fi
+Quando conectado à rede, a placa serve uma página HTTP local com o último score de cada jogo e a tendência. O IP aparece no display OLED e na UART.
 
-O projeto foi pensado principalmente para:
+O sistema funciona normalmente mesmo sem Wi-Fi.
 
-- idosos em geral
-- pessoas com redução de atenção ou memória
-- pessoas com dificuldades motoras leves
-- contextos de interesse ligados a **Alzheimer** e **Parkinson**
+## Hardware
 
-No caso do Alzheimer, a proposta se relaciona mais com **memória e sequência**.  
-No caso do Parkinson, a proposta se relaciona mais com **resposta motora e tempo de reação**.
-
-## Funcionalidades implementadas
-
-O sistema possui duas atividades principais.
-
-### 1. Jogo Simon (Memória)
-O sistema mostra uma sequência de quadrantes na matriz de LEDs e o usuário deve repetir essa sequência usando o joystick.
-
-Características:
-- sequência progressiva
-- interação visual com os quadrantes
-- entrada por diagonais no joystick, acompanhando a posição dos cantos da matriz
-- níveis crescentes
-- score baseado no maior nível alcançado
-
-### 2. Jogo Reflexo
-O sistema espera um intervalo aleatório, acende um quadrante e o usuário deve apertar o botão **A** o mais rápido possível.
-
-Características:
-- 5 rodadas por partida
-- penalidade por antecipação
-- cálculo de tempo médio em milissegundos
-- score baseado no desempenho da sessão
-
-## Recursos extras implementados
-
-Além dos jogos, o projeto também possui:
-
-- persistência de scores na flash interna
-- histórico de sessões
-- dashboard HTTP local via Wi-Fi
-- logs pela UART para depuração
-
-## Análise de desempenho
-
-Atualmente, o projeto registra:
-
-- score do Simon
-- média do Reflexo
-- histórico simples das últimas sessões
-
-A parte de **heurísticas mais elaboradas de análise dos resultados** fica como **evolução futura** do projeto.
-
-Ou seja, embora o sistema já armazene dados de desempenho, uma interpretação mais inteligente desses resultados ainda pode ser expandida no futuro, por exemplo com:
-
-- análise de progresso por período
-- comparação de sessões com critérios mais robustos
-- alertas simples de piora ou melhora
-- visualizações mais completas no dashboard
-
-## Hardware utilizado
-
-Placa principal: **BitDogLab v6.3**
-
-### Periféricos usados
+**Placa:** BitDogLab v6.3 — nenhum componente externo necessário.
 
 | Periférico | GPIO | Função |
 |---|---:|---|
-| Botão A | 5 | Ação principal / resposta no Reflexo |
+| Botão A | 5 | Confirmar / resposta no Reflexo |
 | Botão B | 6 | Voltar / sair |
-| Joystick X | 26 | Entrada analógica |
-| Joystick Y | 27 | Entrada analógica |
+| Joystick X/Y | 26 / 27 | Navegação e entrada no Simon |
 | Botão do joystick | 22 | Reservado |
-| OLED SDA | 14 | I2C |
-| OLED SCL | 15 | I2C |
-| Matriz 5x5 WS2812B | 7 | Saída visual |
+| OLED SDA/SCL | 14 / 15 | Display I2C |
+| Matriz 5x5 WS2812B | 7 | Jogos visuais |
 | Buzzer A | 21 | Feedback sonoro |
 | Buzzer B | 10 | Reservado |
-| LED RGB | 13 / 11 / 12 | Status do sistema |
-| Microfone | 28 | Seed simples para aleatoriedade |
-| Wi-Fi CYW43439 | embutido | Dashboard local |
+| LED RGB | 13 / 11 / 12 | Indicação de estado |
+| Microfone | 28 | Seed para aleatoriedade |
+| Wi-Fi CYW43439 | integrado | Dashboard HTTP |
 
-## Como o sistema funciona
+## Como compilar
 
-### Fluxo geral
-1. A placa inicializa os periféricos
-2. Tenta conectar ao Wi-Fi
-3. Mostra o status da conexão no display
-4. Entra no menu principal
-5. O usuário escolhe entre:
-   - Memória
-   - Reflexo
-   - Histórico
+```bash
+# configure o SSID e senha do Wi-Fi em wifi.c (defines WIFI_SSID e WIFI_PASSWORD)
 
-## Dashboard Wi-Fi
+mkdir build && cd build
+cmake .. -DPICO_BOARD=pico_w
+make -j4
 
-Quando a placa conecta à rede, ela sobe um servidor HTTP local.
+# copie o menteviva.uf2 para a placa (BOOTSEL + USB)
+```
 
-No dashboard é possível visualizar:
-
-- último score do Simon
-- último resultado do Reflexo
-- informações simples de acompanhamento
-
-O acesso é feito pelo IP mostrado no display e também pela UART.
+**Requisitos:** Pico SDK 2.2.0, toolchain ARM GCC.
 
 ## Estrutura do projeto
 
-```text
+```
 MenteViva/
-├── main.c
-├── menteviva.h
-├── input.c
-├── display.c
-├── led_matrix.c
-├── buzzer.c
-├── wifi.c
-├── lwipopts.h
+├── main.c           # máquina de estados, jogos, flash, tendência
+├── menteviva.h      # defines e protótipos
+├── input.c          # botões (IRQ), joystick (ADC), diagonal
+├── display.c        # telas OLED com fonte 5x7
+├── led_matrix.c     # matriz WS2812B, quadrantes
+├── buzzer.c         # tons PWM
+├── wifi.c           # conexão Wi-Fi e servidor HTTP
+├── lwipopts.h       # configuração lwIP
 ├── CMakeLists.txt
-├── pico_sdk_import.cmake
-├── docs/
-│   └── problemas/
-├── lib/
-│   ├── neopixel_pio/
-│   └── ssd1306/
-└── build/
+├── docs/problemas/  # bugs resolvidos durante o desenvolvimento
+└── lib/
+    ├── neopixel_pio/ # driver WS2812B (BitDogLab-C)
+    └── ssd1306/      # driver OLED (BitDogLab-C)
+```
+
+## Melhorias futuras
+
+- Integração MQTT para acompanhamento remoto
+- Sincronização de horário via NTP
+- Dashboard mais completo com gráficos
+- Heurísticas avançadas de análise cognitiva
+
+## Licença
+
+MIT
