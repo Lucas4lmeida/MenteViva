@@ -2,7 +2,7 @@
 
 MenteViva é um projeto de **estimulação cognitiva interativa para idosos**, com foco especial em pessoas que podem apresentar sinais de **declínio cognitivo**, como em quadros relacionados ao **Alzheimer**, e também em pessoas com dificuldades de coordenação e tempo de resposta, como pode acontecer em condições associadas ao **Parkinson**.
 
-O projeto foi desenvolvido na **BitDogLab v6.3** com **Raspberry Pi Pico W / RP2040**, como projeto final do programa **EmbarcaTech Expansão (TIC-37 / Unicamp)**.
+O projeto foi desenvolvido na **BitDogLab v6.3** com **Raspberry Pi Pico W / RP2040**, como projeto final do programa **EmbarcaTech**.
 
 A proposta é reunir atividades simples, visuais e acessíveis para estimular memória, atenção e tempo de resposta, usando recursos embarcados da placa e um dashboard local via Wi-Fi.
 
