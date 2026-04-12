@@ -12,11 +12,11 @@
 #include "menteviva.h"
 
 #ifndef WIFI_SSID
-#define WIFI_SSID "Bolt"
+#define WIFI_SSID "**SSID**"
 #endif
 
 #ifndef WIFI_PASSWORD
-#define WIFI_PASSWORD "Razor_XZ"
+#define WIFI_PASSWORD "**PASSWORD**"
 #endif
 
 #define WIFI_TENTATIVAS  3
