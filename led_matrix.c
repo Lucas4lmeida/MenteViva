@@ -25,6 +25,7 @@ static const uint8_t qy[4][4] = {
     {0, 0, 1, 1}  // q3
 };
 
+// layout serpentina: linhas pares esq→dir, impares dir→esq
 static const uint8_t cores[4][3] = {
     {0, 40, 0},   // q0 verde
     {0, 0, 40},   // q1 azul

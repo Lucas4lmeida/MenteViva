@@ -183,6 +183,8 @@ static void hist_add_u16(uint16_t *hist, uint8_t *count, uint16_t valor) {
 
 static void registrar_score_simon(uint8_t score) {
     hist_add_u8(dados_flash.simon_hist, &dados_flash.simon_count, score);
+    
+    // desabilita interrupcoes: flash XIP fica inacessivel durante erase/write
     flash_salvar();
 
     wifi_atualizar_dashboard(

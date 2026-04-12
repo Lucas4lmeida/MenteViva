@@ -92,6 +92,7 @@ bool joy_btn_apertou(void) {
     return false;
 }
 
+// captura timestamp na ISR para evitar quantizacao do loop principal
 uint32_t btn_a_tempo_us(void) {
     return _a_press_us;
 }
